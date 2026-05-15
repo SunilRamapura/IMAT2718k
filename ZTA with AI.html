@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zero Trust Architecture: A Complete Guide</title>
+    <style>
+        :root {
+            --bg-color: #0b1021;
+            --text-color: #e2e8f0;
+            --accent-color: #00f2ea; /* Cyan neon */
+            --secondary-color: #1e293b;
+            --highlight-color: #ff0055; /* Cyberpunk pink */
+            --success-color: #00ff9d;
+            --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --ai-panel-width: 350px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- UI Overlay --- */
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: rgba(0, 242, 234, 0.1);
+            animation: scan 6s linear infinite;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            0% { top: -10%; }
+            100% { top: 110%; }
+        }
+
+        /* --- Header --- */
+        header {
+            padding: 15px 30px;
+            background: rgba(11, 16, 33, 0.9);
+            border-bottom: 1px solid var(--secondary-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .logo {
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-color);
+        }
+
+        .progress-indicator {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        /* --- Main Content --- */
+        main {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            perspective: 1000px;
+            transition: margin-right 0.3s ease;
+        }
+
+        .slide {
+            position: absolute;
+            width: 90%;
+            max-width: 1100px;
+            height: 85%;
+            background: linear-gradient(145deg, #161e31 0%, #0f1526 100%);
+            border: 1px solid var(--secondary-color);
+            border-radius: 16px;
+            padding: 50px;
+            opacity: 0;
+            transform: scale(0.9) translateY(30px);
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: all;
+            z-index: 2;
+        }
+
+        .slide.prev {
+            transform: translateX(-150%) rotate(-5deg);
+            opacity: 0;
+        }
+
+        .slide.next {
+            transform: translateX(150%) rotate(5deg);
+            opacity: 0;
+        }
+
+        /* --- Typography --- */
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, var(--accent-color), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: var(--accent-color);
+            margin-bottom: 30px;
+            border-left: 5px solid var(--highlight-color);
+            padding-left: 20px;
+        }
+
+        p {
+            font-size: 1.2rem;
+            line-height: 1.7;
+            margin-bottom: 20px;
+            color: #cbd5e1;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        li {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        li::before {
+            content: ">>";
+            position: absolute;
+            left: 0;
+            color: var(--highlight-color);
+            font-size: 0.8rem;
+            top: 4px;
+        }
+
+        /* --- Interactive Components --- */
+
+        /* Comparison Toggle */
+        .toggle-container {
+            background: rgba(0,0,0,0.3);
+            border-radius: 50px;
+            padding: 5px;
+            display: inline-flex;
+            margin-bottom: 30px;
+            border: 1px solid var(--secondary-color);
+        }
+
+        .toggle-btn {
+            padding: 10px 25px;
+            border-radius: 40px;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            box-shadow: 0 0 15px rgba(0, 242, 234, 0.4);
+        }
+
+        .comparison-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        .comparison-content.active { display: block; }
+
+        /* Feature Cards */
+        .grid-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--secondary-color);
+            padding: 25px;
+            border-radius: 12px;
+            transition: transform 0.3s, border-color 0.3s;
+            cursor: default;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-color);
+        }
+
+        .card h3 {
+            color: var(--highlight-color);
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+
+        /* Architecture Interactive Map */
+        .arch-map {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .arch-node {
+            padding: 20px 30px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            min-width: 150px;
+        }
+
+        .arch-node:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 20px rgba(0, 242, 234, 0.2);
+        }
+
+        .arch-node::after {
+            content: "Click details";
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: var(--accent-color);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .arch-node:hover::after { opacity: 1; }
+
+        /* Stats Bar */
+        .stat-bar {
+            background: #334155;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+        }
+        .stat-fill {
+            background: var(--highlight-color);
+            height: 100%;
+            width: 0%;
+            transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 15px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        /* Footer Controls */
+        footer {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            background: rgba(11, 16, 33, 0.9);
+            z-index: 10;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 2px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 10px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            border-color: #64748b;
+            color: #64748b;
+        }
+
+        /* --- AI Sidebar Styles --- */
+        .ai-sidebar {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: var(--ai-panel-width);
+            height: 100vh;
+            background: #111827;
+            border-left: 1px solid var(--accent-color);
+            z-index: 1000;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -5px 0 30px rgba(0,0,0,0.5);
+        }
+
+        .ai-sidebar.open {
+            right: 0;
+        }
+
+        .ai-header {
+            padding: 20px;
+            background: #0f172a;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-title {
+            color: var(--accent-color);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ai-close {
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .ai-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .ai-btn {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid var(--highlight-color);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ai-btn:hover {
+            background: rgba(255, 0, 85, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .ai-response-area {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            min-height: 100px;
+            white-space: pre-wrap;
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .ai-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .ai-input {
+            background: #0b1021;
+            border: 1px solid #334155;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            width: 100%;
+        }
+
+        .loading-dots:after {
+            content: '.';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80%, 100% { content: ''; }
+        }
+
+        /* Toggle Button for AI */
+        .ai-toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: var(--highlight-color);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
+            font-size: 1.5rem;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-toggle-btn:hover {
+            transform: scale(1.1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.5rem; }
+            .slide { padding: 25px; }
+            .arch-map { flex-direction: column; }
+            .ai-sidebar { width: 100%; right: -100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scan-line"></div>
+
+    <header>
+        <div class="logo">ZERO TRUST / GUIDE</div>
+        <div class="progress-indicator" id="slideCounter">1 / 8</div>
+    </header>
+
+    <!-- AI Toggle Button -->
+    <button class="ai-toggle-btn" onclick="toggleAI()">✨</button>
+
+    <!-- AI Sidebar -->
+    <div class="ai-sidebar" id="aiPanel">
+        <div class="ai-header">
+            <div class="ai-title">✨ AI Security Analyst</div>
+            <button class="ai-close" onclick="toggleAI()">&times;</button>
+        </div>
+        <div class="ai-content">
+            <p style="font-size: 0.85rem; color: #94a3b8;">
+                Use the AI assistant to analyze the current slide or run security simulations.
+            </p>
+            
+            <button class="ai-btn" onclick="explainSlide()">
+                <span>✨ Explain This Slide</span>
+            </button>
+
+            <button class="ai-btn" onclick="generateQuiz()">
+                <span>✨ Quiz Me on This</span>
+            </button>
+
+            <hr style="border-color: #334155; opacity: 0.5;">
+
+            <div class="ai-input-group">
+                <label style="font-size: 0.9rem; font-weight: bold; color: var(--accent-color);">Policy Simulator</label>
+                <input type="text" id="scenarioInput" class="ai-input" placeholder="E.g., User accessing HR DB from unknown IP...">
+                <button class="ai-btn" onclick="runSimulation()">
+                    <span>✨ Simulate Access Decision</span>
+                </button>
+            </div>
+
+            <div id="aiResponse" class="ai-response-area" style="display: none;"></div>
+        </div>
+    </div>
+
+    <main id="mainContainer">
+        
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <h1>Zero Trust Architecture</h1>
+            <h2 style="border: none; padding: 0; margin-top: 10px; color: #fff; font-weight: normal;">A Complete Guide</h2>
+            <div style="margin-top: 40px; border-left: 5px solid var(--accent-color); padding-left: 20px;">
+                <p style="font-size: 1.5rem; color: var(--accent-color);">From "Castle and Moat"</p>
+                <p style="font-size: 1.5rem; color: var(--highlight-color);">...to "Never Trust, Always Verify"</p>
+            </div>
+            <p style="margin-top: 50px; color: #64748b;">Use Arrow Keys to Navigate</p>
+        </div>
+
+        <!-- Slide 2: The Traditional Model -->
+        <div class="slide">
+            <h2>The Traditional Model</h2>
+            
+            <div style="text-align: center;">
+                <div class="toggle-container">
+                    <button class="toggle-btn active" onclick="setComparison('castle')">Castle & Moat</button>
+                    <button class="toggle-btn" onclick="setComparison('flaw')">The Critical Flaw</button>
+                </div>
+            </div>
+
+            <div id="view-castle" class="comparison-content active">
+                <div class="grid-cards">
+                    <div class="card">
+                        <h3>Hard Exterior</h3>
+                        <p>A strong firewall protects the perimeter, like a castle wall.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Soft Center</h3>
+                        <p>Once inside, users are trusted by default. This is the "Soft Chewy Center".</p>
+                    </div>
+                    <div class="card">
+                        <h3>Static Credentials</h3>
+                        <p>Access is granted based on simple passwords, not context.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-flaw" class="comparison-content">
+                <div style="background: rgba(255, 0, 85, 0.1); padding: 30px; border-radius: 12px; border: 1px solid var(--highlight-color);">
+                    <h3 style="color: var(--highlight-color); margin-bottom: 20px;">Lateral Movement</h3>
+                    <p>The flaw in the traditional model is <strong>Trust</strong>. If an attacker breaches the perimeter (e.g., via a phishing email), they are "inside" the trust zone.</p>
+                    <p>They can then move <em>laterally</em> across the network to access servers, databases, and files without further checks.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: The Catalyst -->
+        <div class="slide">
+            <h2>The Catalyst for Change</h2>
+            <p>Why did the perimeter dissolve?</p>
+            <ul>
+                <li>The 'office' is no longer a physical place.</li>
+                <li>Data is accessed from home networks, coffee shops, and mobile devices.</li>
+                <li>VPNs provide a tunnel that grants excessive access.</li>
+            </ul>
+
+            <div style="margin-top: 40px;">
+                <p><strong>Workforce permanently remote (Post-COVID stats):</strong></p>
+                <div class="stat-bar">
+                    <div class="stat-fill" style="width: 43%;">43%</div>
+                </div>
+                <p style="font-size: 0.9rem; color: #64748b;">Source: Gartner / Lecture Notes</p>
+            </div>
+        </div>
+
+        <!-- Slide 4: Core Concept -->
+        <div class="slide">
+            <h2>The Core Concept</h2>
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column;">
+                <h1 style="font-size: 4rem; text-align: center; line-height: 1.2;">NEVER TRUST,<br><span style="color: var(--highlight-color); -webkit-text-fill-color: var(--highlight-color);">ALWAYS VERIFY</span></h1>
+                <p style="margin-top: 30px; text-align: center; max-width: 600px;">
+                    Zero Trust assumes the network is <strong>hostile</strong>. No user or device is trusted just because of their location.
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 5: Architecture Map -->
+        <div class="slide">
+            <h2>The Architecture (v1.0)</h2>
+            <p>Click the components to see how they make decisions:</p>
+            
+            <div class="arch-map">
+                <div class="arch-node" onclick="showDetail('signal')">
+                    Signals
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">Input</div>
+                </div>
+                <div style="font-size: 2rem; color: var(--accent-color); align-self: center;">&rarr;</div>
+                <div class="arch-node" style="border-color: var(--accent-color);" onclick="showDetail('engine')">
+                    Policy Engine
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">Brain</div>
+                </div>
+                <div style="font-size: 2rem; color: var(--accent-color); align-self: center;">&rarr;</div>
+                <div class="arch-node" onclick="showDetail('pep')">
+                    Enforcement (PEP)
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">Gatekeeper</div>
+                </div>
+            </div>
+
+            <div id="arch-detail" style="margin-top: 30px; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 8px; min-height: 100px;">
+                <p style="font-style: italic; color: #64748b;">Select a component above...</p>
+            </div>
+        </div>
+
+        <!-- Slide 6: Business Drivers -->
+        <div class="slide">
+            <h2>Business Drivers & Benefits</h2>
+            <div class="grid-cards">
+                <div class="card">
+                    <h3>Breach Prevention</h3>
+                    <p>Reduce the attack surface and stop lateral movement.</p>
+                </div>
+                <div class="card">
+                    <h3>Data Loss Prevention</h3>
+                    <p>Granular control over exactly who sees what data.</p>
+                </div>
+                <div class="card">
+                    <h3>Modern Workforce</h3>
+                    <p>Securely enable BYOD and remote work without VPN headaches.</p>
+                </div>
+                <div class="card">
+                    <h3>Compliance</h3>
+                    <p>Better visibility and logging satisfies regulatory requirements.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: The Journey -->
+        <div class="slide">
+            <h2>Zero Trust is a Journey</h2>
+            <div style="display: flex; gap: 30px; align-items: center; margin-top: 20px;">
+                <div style="background: var(--secondary-color); padding: 30px; border-radius: 50%; width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 3px solid var(--accent-color);">
+                    <span style="font-size: 2.5rem; font-weight: bold;">29%</span>
+                </div>
+                <div>
+                    <p>Of organizations already have a Zero Trust model in place or underway.</p>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 30px; color: var(--highlight-color);">Key Implementation Steps:</h3>
+            <ul>
+                <li><strong>Cultural Change:</strong> Shift from "Open Access" to "Verified Access".</li>
+                <li><strong>Not Just Tech:</strong> It's a mix of policies, technology, and process.</li>
+                <li><strong>Identity First:</strong> Create a single strong identity for users and devices.</li>
+            </ul>
+        </div>
+
+        <!-- Slide 8: Quick Quiz -->
+        <div class="slide">
+            <h2>Quick Review</h2>
+            <div class="card" style="margin-top: 20px; text-align: center;">
+                <p style="font-size: 1.4rem;">What is the main goal of Zero Trust regarding "Lateral Movement"?</p>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
+                    <button class="nav-btn" onclick="checkAnswer(this, false)">Encourage it for speed</button>
+                    <button class="nav-btn" onclick="checkAnswer(this, true)">Prevent/Stop it</button>
+                    <button class="nav-btn" onclick="checkAnswer(this, false)">Monitor it only</button>
+                </div>
+                <p id="quiz-feedback" style="margin-top: 15px; font-weight: bold; min-height: 25px;"></p>
+            </div>
+            <div style="margin-top: 50px; text-align: center;">
+                <p style="color: #64748b;">End of Guide</p>
+            </div>
+        </div>
+
+    </main>
+
+    <footer>
+        <button class="nav-btn" id="prevBtn" onclick="moveSlide(-1)">Previous</button>
+        <button class="nav-btn" id="nextBtn" onclick="moveSlide(1)">Next</button>
+    </footer>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const slideCounter = document.getElementById('slideCounter');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const archDetail = document.getElementById('arch-detail');
+        const apiKey = ""; // API key injected by environment
+
+        // Navigation
+        function updateSlides() {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active', 'prev', 'next');
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                } else if (index < currentSlide) {
+                    slide.classList.add('prev');
+                } else {
+                    slide.classList.add('next');
+                }
+            });
+
+            slideCounter.innerText = `${currentSlide + 1} / ${slides.length}`;
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.innerText = currentSlide === slides.length - 1 ? "Finish" : "Next";
+        }
+
+        function moveSlide(dir) {
+            if (dir === 1 && currentSlide < slides.length - 1) {
+                currentSlide++;
+            } else if (dir === -1 && currentSlide > 0) {
+                currentSlide--;
+            }
+            updateSlides();
+        }
+
+        // Comparison Toggle Logic
+        function setComparison(view) {
+            document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.comparison-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${view}`).classList.add('active');
+        }
+
+        // Architecture Map Logic
+        function showDetail(component) {
+            const details = {
+                'signal': '<strong>Signals:</strong> Contextual data like User Identity, Device Health, and Location. These are the inputs for the decision.',
+                'engine': '<strong>Policy Engine:</strong> The "Brain". It compares the signals against the organizational policy to calculate a risk score.',
+                'pep': '<strong>Policy Enforcement Point (PEP):</strong> The "Gatekeeper". It sits between the user and the data, opening or closing the door based on the Engine\'s decision.'
+            };
+            archDetail.innerHTML = details[component] || '';
+            archDetail.style.backgroundColor = "rgba(0, 242, 234, 0.1)";
+            setTimeout(() => { archDetail.style.backgroundColor = "rgba(255,255,255,0.05)"; }, 300);
+        }
+
+        // Static Quiz Logic
+        function checkAnswer(btn, isCorrect) {
+            const feedback = document.getElementById('quiz-feedback');
+            if(isCorrect) {
+                feedback.style.color = "var(--success-color)";
+                feedback.innerText = "Correct! ZT isolates resources to stop attackers from moving freely.";
+                btn.style.backgroundColor = "var(--success-color)";
+                btn.style.color = "#000";
+                btn.style.borderColor = "var(--success-color)";
+            } else {
+                feedback.style.color = "var(--highlight-color)";
+                feedback.innerText = "Incorrect. The goal is to contain threats.";
+                btn.style.borderColor = "var(--highlight-color)";
+            }
+        }
+
+        // --- AI Sidebar Logic ---
+        function toggleAI() {
+            const panel = document.getElementById('aiPanel');
+            panel.classList.toggle('open');
+            // Shift main content slightly if desktop
+            if(window.innerWidth > 768) {
+                const main = document.getElementById('mainContainer');
+                main.style.marginRight = panel.classList.contains('open') ? '350px' : '0';
+            }
+        }
+
+        // Generic Gemini API Call
+        async function callGemini(prompt) {
+            const responseDiv = document.getElementById('aiResponse');
+            responseDiv.style.display = 'block';
+            responseDiv.innerHTML = '<span class="loading-dots">Analyzing Security Data</span>';
+            
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+
+                if (!response.ok) throw new Error('API Request Failed');
+
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text;
+                
+                // Simple markdown-ish formatting replacement
+                const formattedText = text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--accent-color)">$1</strong>')
+                    .replace(/\n/g, '<br>');
+                
+                responseDiv.innerHTML = formattedText;
+
+            } catch (error) {
+                responseDiv.innerHTML = `<span style="color:var(--highlight-color)">Error: ${error.message}. Please check API connection.</span>`;
+            }
+        }
+
+        function getCurrentSlideContent() {
+            const activeSlide = document.querySelector('.slide.active');
+            return activeSlide ? activeSlide.innerText : "No content found.";
+        }
+
+        // Feature 1: Explain Slide
+        function explainSlide() {
+            const content = getCurrentSlideContent();
+            const prompt = `You are a cybersecurity expert tutor. Explain the following content from a lecture slide to a student in simple, engaging terms. Focus on the "Why" and "How". \n\nSlide Content: ${content}`;
+            callGemini(prompt);
+        }
+
+        // Feature 2: Policy Simulator
+        function runSimulation() {
+            const scenario = document.getElementById('scenarioInput').value;
+            if(!scenario) {
+                alert("Please enter a scenario first.");
+                return;
+            }
+            const prompt = `Act as a Zero Trust Policy Engine. Analyze the following access request scenario. 
+            Evaluate risk based on Identity, Device Health, and Context/Location.
+            
+            Scenario: "${scenario}"
+            
+            Output format:
+            **Decision:** [GRANT / DENY / MFA CHALLENGE]
+            **Risk Score:** [Low/Medium/High]
+            **Reasoning:** Brief explanation of why based on Zero Trust principles.`;
+            
+            callGemini(prompt);
+        }
+
+        // Feature 3: Dynamic Quiz
+        function generateQuiz() {
+            const content = getCurrentSlideContent();
+            const prompt = `Create a single multiple-choice question based on this slide content. 
+            Do not show the answer immediately.
+            Format:
+            **Question:** [The Question]
+            A) [Option 1]
+            B) [Option 2]
+            C) [Option 3]
+            
+            (Wait for user to think, then show Answer at the bottom prefixed with '|||')
+            
+            Slide Content: ${content}`;
+            
+            // Note: Since we can't do multi-turn easily without history, we'll ask Gemini to just print the question and answer in one go for study purposes, or we could hide the answer with CSS. 
+            // For this simpler implementation, we'll just ask for the question and the answer revealed at the end.
+            callGemini(prompt);
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') moveSlide(1);
+            if (e.key === 'ArrowLeft') moveSlide(-1);
+        });
+
+        // Init
+        updateSlides();
+    </script>
+</body>
+</html>
